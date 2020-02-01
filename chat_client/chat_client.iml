@@ -7,5 +7,7 @@
     </content>
     <orderEntry type="jdk" jdkName="1.8.0_222" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="network" />
+    <orderEntry type="module" module-name="chat_library" />
   </component>
 </module>

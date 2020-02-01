@@ -1,2 +1,3 @@
-This is the project of new network_chat_application, that was created as a result of java_level_2 course.
-Nowadays it is being rebuilt, so the release will be as soon as the stable version of application have been completed.
+This is the project of chat application that was founded during education.
+At the moment it is being rebuilt.
+As soon as the stable version of application have been completed, the new release will be put in this repository.
