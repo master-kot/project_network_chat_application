@@ -1,4 +1,4 @@
-package online.server.core;
+package chat.server.core;
 
 public class ChatServer {
     public void start(int port) {

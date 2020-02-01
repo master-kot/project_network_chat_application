@@ -1,6 +1,6 @@
-package online.server.gui;
+package chat.server.gui;
 
-import online.server.core.ChatServer;
+import chat.server.core.ChatServer;
 
 import javax.swing.*;
 import java.awt.*;

@@ -1,4 +1,4 @@
-package online.client;
+package chat.client;
 
 import javax.swing.*;
 import java.awt.*;
