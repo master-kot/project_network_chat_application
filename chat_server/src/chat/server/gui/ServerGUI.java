@@ -1,6 +1,7 @@
 package chat.server.gui;
 
 import chat.server.core.ChatServer;
+import chat.server.core.ChatServerListener;
 
 import javax.swing.*;
 import java.awt.*;
@@ -13,19 +14,27 @@ import java.awt.event.ActionListener;
  * Данный класс имплементерует интерфейс ActionListener
  * и явлеется обработчиком событий и возгникающих исключений
  */
-public class ServerGUI extends JFrame implements ActionListener, Thread.UncaughtExceptionHandler {
+public class ServerGUI extends JFrame implements ActionListener, Thread.UncaughtExceptionHandler, ChatServerListener {
 
-    private static final int POS_X = 1000;
-    private static final int POS_Y = 550;
-    private static final int HEIGHT = 100;
-    private static final int WIDTH = 200;
-
-    private final ChatServer chatServer = new ChatServer();
+    private static final int POS_X = 800;
+    private static final int POS_Y = 200;
+    private static final int WIDTH = 600;
+    private static final int HEIGHT = 300;
+    /**
+     * Создание экземпляра чат-сервера - бэкэнда чат сервера;
+     */
+    private final ChatServer chatServer = new ChatServer(this);
+    /**
+     * Создание необходимых кнопок графической оболочки
+     */
     private final JButton btnStart = new JButton("Start");
     private final JButton btnStop = new JButton("Stop");
+    private final JPanel panelTop = new JPanel(new GridLayout(1, 2));
+    private final JTextArea log = new JTextArea();
 
     /**
      * Запуск графической оболочки с созданием экземпляра класса ServerGUI
+     * в специализированном потоке SwingUtilities.invokeLater
      */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
@@ -43,11 +52,16 @@ public class ServerGUI extends JFrame implements ActionListener, Thread.Uncaught
         setTitle("Server GUI");
         setResizable(false);
         setAlwaysOnTop(true);
-        setLayout(new GridLayout(1, 2));
+
+        log.setEditable(false);
+        log.setLineWrap(true);
+        JScrollPane scrollLog = new JScrollPane(log);
         btnStop.addActionListener(this);
         btnStart.addActionListener(this);
-        add(btnStart);
-        add(btnStop);
+        panelTop.add(btnStart);
+        panelTop.add(btnStop);
+        add(panelTop, BorderLayout.NORTH);
+        add(scrollLog, BorderLayout.CENTER);
         setVisible(true);
     }
 
@@ -59,12 +73,21 @@ public class ServerGUI extends JFrame implements ActionListener, Thread.Uncaught
         Object src = e.getSource();
         if (src == btnStart) {
             chatServer.start(8189);
-//            throw new RuntimeException("Hello from EDT!");
         } else if (src == btnStop) {
             chatServer.stop();
         } else {
             throw new RuntimeException("Unknown source: " + src);
         }
+    }
+
+    private void putLog(String msg) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                log.append(msg + '\n');
+                log.setCaretPosition(log.getDocument().getLength());
+            }
+        });
     }
 
     /**
@@ -74,14 +97,20 @@ public class ServerGUI extends JFrame implements ActionListener, Thread.Uncaught
      */
     @Override
     public void uncaughtException(Thread t, Throwable e) {
-       e.printStackTrace();
-       StackTraceElement[] ste = e.getStackTrace();
-       String msg = String.format("Exception in thread %s: %s: %s\n\t at %s",
-               t.getName(),
-               e.getClass().getCanonicalName(),
-               e.getMessage(),
-               ste[0]
-       );
-       JOptionPane.showMessageDialog(null, msg, "Exception", JOptionPane.ERROR_MESSAGE);
+        e.printStackTrace();
+        StackTraceElement[] ste = e.getStackTrace();
+        String msg = String.format("Exception in thread %s: %s: %s\n\t at %s",
+                t.getName(),
+                e.getClass().getCanonicalName(),
+                e.getMessage(),
+                ste[0]
+        );
+//       JOptionPane.showMessageDialog(null, msg, "Exception", JOptionPane.ERROR_MESSAGE);
+        putLog(msg);
+    }
+
+    @Override
+    public void onServerMessage(String msg) {
+        putLog(msg);
     }
 }
