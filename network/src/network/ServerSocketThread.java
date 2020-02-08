@@ -10,8 +10,8 @@ import java.net.SocketTimeoutException;
  */
 public class ServerSocketThread extends Thread {
     private ServerSocketThreadListener listener;
-    private final int port;
-    private final int timeout;
+    private final int port;     //порт
+    private final int timeout;  //дает возможность выходить из метода accept
 
     /**
      * В конструктор передается слушатель сообщений, обрабатывающий их
@@ -26,28 +26,29 @@ public class ServerSocketThread extends Thread {
     }
 
     /**
-     * Слушателю передаются все возникающие ниже сообщения
+     * Слушателю listener передаются все возникающие на потоке сообщения
      */
     @Override
     public void run() {
         listener.onServerSocketThreadStart(this);
+        //Создаем новый экземпляр класса ServerSocket
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             listener.onServerSocketCreate(this, serverSocket);
-            serverSocket.setSoTimeout(timeout);
+            serverSocket.setSoTimeout(timeout);     //установить таймаут
             while (!isInterrupted()) {
-                Socket socket;
+                Socket socket;  //сервер создает сокеты пока его не прервут
                 try {
                     socket = serverSocket.accept();
-                } catch (SocketTimeoutException e) {
+                } catch (SocketTimeoutException e) { //превышен таймаут
                     listener.onServerSocketAcceptTimeout(this, serverSocket);
                     continue;
                 }
-                listener.onSocketAccept(this, socket);
+                listener.onSocketAccept(this, socket);  //
             }
         } catch (IOException e) {
             listener.onServerSocketThreadException(this, e);
         } finally {
-            listener.onServerSocketThreadStop(this);
+            listener.onServerSocketThreadStop(this);    //сервер сокет остановился
         }
     }
 }

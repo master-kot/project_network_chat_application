@@ -12,7 +12,7 @@ public class SocketThread extends Thread {
 
     private SocketThreadListener listener;
     private Socket socket;
-    private DataOutputStream out;
+    private DataOutputStream out;   //поток вывода
 
     /**
      * @param listener - слушатель событий
@@ -26,14 +26,15 @@ public class SocketThread extends Thread {
 
     @Override
     public void run() {
-        listener.onSocketThreadStart(this, socket);
+        listener.onSocketThreadStart(this, socket); //поток стартовал
         try {
+            //создаем потоки ввода-вывода данных
             DataInputStream in = new DataInputStream(socket.getInputStream());
             out = new DataOutputStream(socket.getOutputStream());
             listener.onSocketThreadReady(this, socket);
             while (!isInterrupted()) {
                 String msg = in.readUTF();
-                listener.onReceiveString(this, socket, msg);
+                listener.onReceiveString(this, socket, msg);    //сообщение принято
             }
         } catch (IOException e) {
             listener.onSocketThreadException(this, e);
@@ -44,7 +45,7 @@ public class SocketThread extends Thread {
                 listener.onSocketThreadException(this, e);
             }
         }
-        listener.onSocketThreadStop(this);
+        listener.onSocketThreadStop(this);  //сокет поток оставонлен
     }
 
     /**
@@ -64,6 +65,7 @@ public class SocketThread extends Thread {
 
     /**
      * Закрываем сокет поток
+     * Будет использоваться в ClientThread при возникновении
      */
     public synchronized void close() {
         interrupt();

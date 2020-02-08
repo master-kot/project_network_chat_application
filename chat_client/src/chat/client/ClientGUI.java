@@ -11,36 +11,46 @@ import java.awt.event.ActionListener;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.Socket;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
 
 /**
- * Графический интерфейс клиент чата
+ * Графический интерфейс клиент чата на основе JFrame
  * Является слушателем сообщений SocketThreadListener
  */
 public class ClientGUI extends JFrame implements ActionListener, Thread.UncaughtExceptionHandler, SocketThreadListener {
-    private static final int WIDTH = 400;
-    private static final int HEIGHT = 300;
+
+    private static final int WIDTH = 400;   //ширина окна
+    private static final int HEIGHT = 300;  //высота окна чата
+    private static final String WINDOW_TITLE = "Chat Client";
+
     /**
      * Добавляем поля и кнопки
      */
-    private final JTextArea log = new JTextArea();
+    private final JTextArea log = new JTextArea();//основная область чата
     private final JPanel panelTop = new JPanel(new GridLayout(2, 3));
-    private final JTextField tfIPAddress = new JTextField("127.0.0.1");
-    private final JTextField tfPort = new JTextField("8189");
+    private final JTextField tfIPAddress = new JTextField("127.0.0.1");//адрес сервера
+    private final JTextField tfPort = new JTextField("8189");//порт сервера
     private final JCheckBox cbAlwaysOnTop = new JCheckBox("Always on top", true);
-    private final JTextField tfLogin = new JTextField("ivan");
-    private final JPasswordField tfPassword = new JPasswordField("123");
+    private final JTextField tfLogin = new JTextField("Enter login");
+    private final JPasswordField tfPassword = new JPasswordField("Enter password");
     private final JButton btnLogin = new JButton("Login");
+
     /**
      * Размещаем элементы на окне
      */
     private final JPanel panelBottom = new JPanel(new BorderLayout());
     private final JButton btnDisconnect = new JButton("<html><b>Disconnect</b></html>");
-    private final JTextField tfMessage = new JTextField();
+    private final JTextField tfMessage = new JTextField();//поле ввода сообщения
     private final JButton btnSend = new JButton("Send");
 
-    private final JList<String> userList = new JList<>();
+    private final JList<String> userList = new JList<>();   //список пользователей чата
     private boolean shownIoErrors = false;
     private SocketThread socketThread;
+    private final DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss: ");
+    //пустой список пользователей показываемый пока клиент не авторизовался
+    private final String[] EMPTY_LIST = new String[0];
 
     /**
      * Создаем новый экземпляр графической оболочки чат клиента
@@ -60,30 +70,30 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
     private ClientGUI() {
         Thread.setDefaultUncaughtExceptionHandler(this);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-        setSize(WIDTH, HEIGHT);
-        setTitle("Chat Client");
-        setAlwaysOnTop(true);
+        setLocationRelativeTo(null);//расположение окна чата
+        setSize(WIDTH, HEIGHT);     //размер окна чата
+        setTitle(WINDOW_TITLE);     //название окна
+        setAlwaysOnTop(true);       //поверх других окон
 
-        log.setEditable(false);
-        log.setLineWrap(true);
-        JScrollPane scrollLog = new JScrollPane(log);
-        JScrollPane scrollUsers = new JScrollPane(userList);
-        String[] users = {"user1_with_an_exceptionally_long_nickname", "user2", "user3", "user4", "user5", "user6", "user7", "user8", "user9", "user10"};
-        userList.setListData(users);
+        log.setEditable(false);     //разрешить изменение поля лога чата
+        log.setLineWrap(true);      //разрешить перенос текста
+        JScrollPane scrollLog = new JScrollPane(log);       //панель лога
+        JScrollPane scrollUsers = new JScrollPane(userList);//панель пользователей
         scrollUsers.setPreferredSize(new Dimension(100, 0));
-        /**
+
+        /*
          * Добавляем слушателей для кнопок и полей
          * все события обрабатываюстя здесь же в методе actionPerformed
          */
         cbAlwaysOnTop.addActionListener(this);
         btnLogin.addActionListener(this);
         btnSend.addActionListener(this);
-        btnLogin.addActionListener(this);
+        btnDisconnect.addActionListener(this);
         tfMessage.addActionListener(this);
         panelBottom.setVisible(false);
         panelTop.setVisible(true);
-        /**
+
+        /*
          * Добавляем компоненты графической части клиента
          */
         panelTop.add(tfIPAddress);
@@ -95,8 +105,9 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
         panelBottom.add(btnDisconnect, BorderLayout.WEST);
         panelBottom.add(tfMessage, BorderLayout.CENTER);
         panelBottom.add(btnSend, BorderLayout.EAST);
-        /**
-         * Добавляем панели
+
+        /*
+         * Добавляем панели составных частей окна приложения
          */
         add(panelTop, BorderLayout.NORTH);
         add(scrollLog, BorderLayout.CENTER);
@@ -106,12 +117,15 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
     }
 
     /**
-     * Обработчик исключений
+     * Обработчик неперехваченных исключений
      */
     @Override
     public void uncaughtException(Thread t, Throwable e) {
         showException(t, e);
+        //выход из программы в случае возникновения неперехваченного исключения
         System.exit(1);
+        //TODO
+        //Лучше вылогиниваться и возвращаться к исходному состоянию ClientGUI
     }
 
     /**
@@ -119,7 +133,10 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
      */
     private void connect() {
         try {
-            Socket socket = new Socket(tfIPAddress.getText(), Integer.parseInt(tfPort.getText()));
+            //создаем новый сокет
+            Socket socket = new Socket(tfIPAddress.getText(),
+                    Integer.parseInt(tfPort.getText()));
+            //создаем новый сокет тред и передает туда сокет
             socketThread = new SocketThread(this, "Client", socket);
         } catch (IOException e) {
             showException(Thread.currentThread(), e);
@@ -133,34 +150,47 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
     public void actionPerformed(ActionEvent e) {
         Object src = e.getSource();
         if (src == cbAlwaysOnTop) {
-            setAlwaysOnTop(cbAlwaysOnTop.isSelected());
+            setAlwaysOnTop(cbAlwaysOnTop.isSelected());//поверх всех окон
         }  else if (src == btnSend || src == tfMessage) {
-            sendMessage();
+            sendMessage();          //отправить сообщение
         } else if (src == btnLogin || src == tfLogin ||
                 src == tfPassword || src == tfPort ||
                 src == tfIPAddress) {
-            connect();
+            connect();              //подключиться к серверу по нажатию Enter
         } else if (src == btnDisconnect) {
-            socketThread.close();
+            socketThread.close();   //отключиться от сервера
         } else {
+            //TODO
+            //бросать исключение в виде нового окна уведомлений
             throw new RuntimeException("Unknown source: " + src);
         }
     }
 
+    //TODO
+    /* Реализовать приватные сообщения - возможность выбрать пользователя
+     * и отправить сообщение только ему одному
+     * Варианты выбора - нажать правой кнопкой на пользователя в списке
+     * Либо
+     */
     private void sendMessage() {
         String msg = tfMessage.getText();
         if ("".equals(msg)) return;
         tfMessage.setText(null);
         tfMessage.requestFocusInWindow();
-        socketThread.sendMessage(msg);
+        socketThread.sendMessage(Library.getTypeBcastClient(msg));
     }
 
+    //TODO
+    /* Сделать логирование сообщений в базу данных
+     * При этом можно создать отдельную базу для всех сообщений на сервере
+     * и локальные базы для каждого клиента, сохраняющие его личную переписку
+     */
     /**
      * Записываем сообщение в текстовый лог-файл
      */
-    private void wrtMsgToLogFile(String msg, String username) {
+    private void wrtMsgToLogFile(String msg) {
         try (FileWriter out = new FileWriter("log.txt", true)) {
-            out.write(username + ": " + msg + "\n");
+            out.write(msg + "\n");
             out.flush();
         } catch (IOException e) {
             if (!shownIoErrors) {
@@ -176,7 +206,7 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
     private void putLog(String msg) {
         if ("".equals(msg)) return;
         SwingUtilities.invokeLater(new Runnable() {
-            @Override
+             @Override
             public void run() {
                 log.append(msg + "\n");
                 log.setCaretPosition(log.getDocument().getLength());
@@ -185,7 +215,7 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
     }
 
     private void showException(Thread t, Throwable e) {
-        e.printStackTrace();
+        //e.printStackTrace();
         StackTraceElement[] ste = e.getStackTrace();
         String msg = String.format("Exception in thread %s: %s: %s\n\t at %s",
                 t.getName(),
@@ -194,6 +224,8 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
                 ste[0]
         );
         JOptionPane.showMessageDialog(null, msg, "Exception", JOptionPane.ERROR_MESSAGE);
+        //TODO
+        //логировать возникающие исключения
     }
 
     /**
@@ -206,31 +238,75 @@ public class ClientGUI extends JFrame implements ActionListener, Thread.Uncaught
 
     @Override
     public void onSocketThreadStop(SocketThread thread) {
-        panelBottom.setVisible(false);
-        panelTop.setVisible(true);
+        panelBottom.setVisible(false);      //нижняя панель невидима
+        panelTop.setVisible(true);          //верхняя панель видима
         putLog("Connection lost...");
+        setTitle(WINDOW_TITLE);
+        userList.setListData(EMPTY_LIST);   //очистить список пользователей
     }
 
     @Override
     public void onSocketThreadReady(SocketThread thread, Socket socket) {
         putLog("Connection established");
-        panelBottom.setVisible(true);
-        panelTop.setVisible(false);
-        String login = tfLogin.getText();
-        String password = new String(tfPassword.getPassword());
+        panelBottom.setVisible(true);       //нижняя панель видима
+        panelTop.setVisible(false);         //верхняя панель невидима
+        String login = tfLogin.getText();   //получить логин
+        String password = new String(tfPassword.getPassword()); //получить пароль
+        //посылаем аутентификационное сообщение после его обработки библиотекой
         thread.sendMessage(Library.getAuthRequest(login, password));
     }
 
     @Override
     public void onReceiveString(SocketThread thread, Socket socket, String msg) {
-        putLog(msg);
+        handleMessage(msg);
     }
 
     /**
-     * Обработка исключения, возникшего на потоке
+     * Обработка исключения, возникшего на потоке, в этот метод
+     * должны пробрасываться все исключения, возникшие в нижерасположенных
+     * классах и затем показываться пользователю в виде всплывающих окон
      */
     @Override
     public void onSocketThreadException(SocketThread thread, Throwable throwable) {
+        //TODO
+        //нужно логировать возникшее исключение
         showException(thread, throwable);
+    }
+
+    /**
+     * Обработчик сообщений от клиента с использованием
+     * методов преобразования сообщений из библиотеки Library
+     */
+    private void handleMessage(String msg) {
+        String[] arr = msg.split(Library.DELIMITER);
+        String msgType = arr[0];
+        switch (msgType) {
+            case Library.AUTH_ACCEPT:
+                setTitle(WINDOW_TITLE + ": " + arr[1]);
+                break;
+            case Library.AUTH_DENIED:
+                putLog("Authentication denied, check your credentials!");
+                socketThread.close();
+                break;
+            case Library.USER_LIST:
+                String users = msg.substring(Library.USER_LIST.length() + Library.DELIMITER.length());
+                String[] usersArr = users.split(Library.DELIMITER);
+                Arrays.sort(usersArr);
+                userList.setListData(usersArr);
+                break;
+            case Library.MSG_FORMAT_ERROR:
+                //TODO
+                //something here
+                socketThread.close();
+                break;
+            case Library.TYPE_BROADCAST:
+                //разбираем широковещательное сообщение
+                putLog(dateFormat.format(Long.parseLong(arr[1])) + ": " + arr[2] + ": " + arr[3]);
+                break;
+            default:
+                //TODO
+                throw new RuntimeException("Unknown message type: " + msg);
+                //логируем
+        }
     }
 }
